@@ -1,0 +1,18 @@
+# Exclude build artifacts
+/target/
+**/*.rs.bk
+
+# Exclude Cargo lock file (if not needed for libraries)
+Cargo.lock
+
+# Exclude IDE-specific files
+.vscode/
+.idea/
+
+# Exclude OS-specific files
+.DS_Store
+Thumbs.db
+
+# Exclude debug and release builds
+**/debug/
+**/release/
