@@ -1,0 +1,18 @@
+[package]
+name = "hangman-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jackson Saalfrank"]
+description = "A simple command-line Hangman game written in Rust."
+
+[dependencies]
+
+[package.metadata.scripts]
+format = "cargo fmt --all"
+
+lint = "cargo clippy --all-targets --all-features -- -D warnings"
+
+check = """
+cargo fmt --all && 
+cargo clippy --all-targets --all-features -- -D warnings
+"""

@@ -16,3 +16,7 @@ Thumbs.db
 # Exclude debug and release builds
 **/debug/
 **/release/
+
+# Added by cargo
+
+/target
