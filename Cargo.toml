@@ -6,6 +6,7 @@ authors = ["Jackson Saalfrank"]
 description = "A simple command-line Hangman game written in Rust."
 
 [dependencies]
+crossterm = "0.27.0"
 
 [package.metadata.scripts]
 format = "cargo fmt --all"
