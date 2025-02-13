@@ -10,10 +10,5 @@ crossterm = "0.27.0"
 
 [package.metadata.scripts]
 format = "cargo fmt --all"
-
 lint = "cargo clippy --all-targets --all-features -- -D warnings"
-
-check = """
-cargo fmt --all && 
-cargo clippy --all-targets --all-features -- -D warnings
-"""
+check = "cargo fmt --all && cargo clippy --all-targets --all-features -- -D warnings"
