@@ -1,13 +1,16 @@
-use crossterm::event::{self, Event, KeyCode};
-use crossterm::style::{Color, SetBackgroundColor, SetForegroundColor};
-use crossterm::{cursor, queue, QueueableCommand};
 use crossterm::{
-    execute,
+    cursor,
+    event::{self, Event, KeyCode},
+    execute, queue,
+    style::{Color, SetBackgroundColor, SetForegroundColor},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, SetTitle},
+    QueueableCommand,
 };
 use rand::seq::SliceRandom;
-use std::fs;
-use std::io::{self, stdout, Write};
+use std::{
+    fs,
+    io::{self, stdout, Write},
+};
 
 fn setup_colors() -> io::Result<()> {
     execute!(
