@@ -41,12 +41,15 @@ fn main() -> io::Result<()> {
     //? Ignores console commands like Ctrl+C
     crossterm::terminal::enable_raw_mode()?;
 
-    let secret_word = select_random_word()?;
-
-    //? Holds the word and guesses
-    let state = GameState::new(secret_word);
-
-    main_loop(state)?;
+    loop {
+        let secret_word = select_random_word()?;
+        //? Holds the word and guesses
+        let state = GameState::new(secret_word);
+        let play_again = main_loop(state)?;
+        if !play_again {
+            break;
+        }
+    }
 
     Ok(())
 }
@@ -77,7 +80,7 @@ impl GameState {
                 }
             })
             .collect::<Vec<String>>() // Collect into Vec<String>
-            .join(" ") // Now join works!
+            .join(" ")
     }
 }
 
@@ -127,20 +130,18 @@ fn get_player_guess() -> io::Result<char> {
     }
 }
 
-fn main_loop(mut state: GameState) -> io::Result<()> {
+fn main_loop(mut state: GameState) -> io::Result<bool> {
     loop {
         draw_interface(&state)?;
 
-        //? Check win/lose conditions
-        if state
+        let won = state
             .secret_word
             .chars()
-            .all(|c| state.guessed_letters.contains(&c))
-        {
-            break;
-        }
+            .all(|c| state.guessed_letters.contains(&c));
 
-        if state.incorrect_guesses >= 6 {
+        let lost = state.incorrect_guesses >= 6;
+
+        if won || lost {
             break;
         }
 
@@ -155,7 +156,64 @@ fn main_loop(mut state: GameState) -> io::Result<()> {
             }
         }
     }
+
+    let won = state
+        .secret_word
+        .chars()
+        .all(|c| state.guessed_letters.contains(&c));
+    draw_game_over_screen(won, &state.secret_word)?;
+    prompt_play_again()
+}
+
+fn draw_game_over_screen(win: bool, secret_word: &str) -> io::Result<()> {
+    let mut stdout = stdout();
+
+    stdout
+        .queue(cursor::Hide)?
+        .queue(crossterm::terminal::Clear(
+            crossterm::terminal::ClearType::All,
+        ))?;
+
+    let message = if win {
+        "YOU WIN! 🎉"
+    } else {
+        "YOU LOSE! 💀"
+    };
+
+    queue!(stdout, cursor::MoveTo(10, 5))?;
+    print!("{}", message);
+
+    queue!(stdout, cursor::MoveTo(10, 6))?;
+    print!("The word was: {}", secret_word);
+
+    queue!(stdout, cursor::MoveTo(10, 8))?;
+    print!("Play again? (Y/N)");
+
+    stdout.flush()?;
     Ok(())
+}
+
+fn prompt_play_again() -> io::Result<bool> {
+    let mut result = None;
+
+    //? Get valid Y/N input
+    while result.is_none() {
+        if let Event::Key(key_event) = event::read()? {
+            match key_event.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') => result = Some(true),
+                KeyCode::Char('n') | KeyCode::Char('N') => result = Some(false),
+                _ => continue,
+            }
+        }
+    }
+
+    //? Crossterm-specific input buffer flushing
+    while event::poll(std::time::Duration::from_secs(0))? {
+        //? Clear any remaining input events
+        let _ = event::read()?;
+    }
+
+    Ok(result.unwrap())
 }
 
 fn select_random_word() -> io::Result<String> {
