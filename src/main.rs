@@ -6,23 +6,16 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, SetTitle},
     QueueableCommand,
 };
+use hangman_rust::constants;
 use rand::seq::SliceRandom;
 use std::{
     fs,
     io::{self, stdout, Write},
 };
 
-fn setup_colors() -> io::Result<()> {
-    execute!(
-        stdout(),
-        SetBackgroundColor(Color::Black),
-        SetForegroundColor(Color::DarkGreen)
-    )?;
-    Ok(())
-}
-
 struct CleanUp;
 
+//? Drop trait is used to run code when a value goes out of scope
 impl Drop for CleanUp {
     fn drop(&mut self) {
         execute!(stdout(), LeaveAlternateScreen).unwrap();
@@ -31,25 +24,29 @@ impl Drop for CleanUp {
 }
 
 fn main() -> io::Result<()> {
+    //? Declare an instance of the class
+    //? When the main function ends, the instance of the class will be dropped
     let _cleanup = CleanUp;
 
-    let mut stdout = stdout();
     execute!(
-        stdout,
+        //? This can be used to draw stuff in the terminal
+        stdout(),
         EnterAlternateScreen,
         SetTitle("Hangman - Coco Computer Style"),
+        SetBackgroundColor(Color::DarkGreen),
+        SetForegroundColor(Color::Black)
     )?;
+
+    //? Allows the program to read input directly as it is typed
+    //? Ignores console commands like Ctrl+C
     crossterm::terminal::enable_raw_mode()?;
-    setup_colors()?;
 
     let secret_word = select_random_word()?;
+
+    //? Holds the word and guesses
     let state = GameState::new(secret_word);
 
     main_loop(state)?;
-
-    // Wait for keypress before exiting
-    println!("\nPress any key to exit...");
-    let _ = get_player_guess()?;
 
     Ok(())
 }
@@ -84,97 +81,40 @@ impl GameState {
     }
 }
 
-const HANGMAN_STAGES: [&str; 7] = [
-    r#"
-  +---+
-  |   |
-      |
-      |
-      |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
-      |
-      |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
-  |   |
-      |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
- /|   |
-      |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
- /|\  |
-      |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
- /|\  |
- /    |
-      |
-========="#,
-    r#"
-  +---+
-  |   |
-  O   |
- /|\  |
- / \  |
-      |
-========="#,
-];
-
 fn draw_interface(state: &GameState) -> io::Result<()> {
     let mut stdout = stdout();
 
-    // Clear screen and reset cursor
+    //? Clear screen and reset cursor
     stdout
         .queue(cursor::Hide)?
         .queue(crossterm::terminal::Clear(
             crossterm::terminal::ClearType::All,
         ))?;
 
-    // Draw hangman
+    //? Draw hangman
     let stage_index = state.incorrect_guesses.min(6) as usize;
     queue!(stdout, cursor::MoveTo(5, 2))?;
-    print!("{}", HANGMAN_STAGES[stage_index]);
+    print!("{}", constants::HANGMAN_STAGES[stage_index]);
 
-    // Draw word display
+    //? Draw word display
     let display_word = state.current_display();
     queue!(stdout, cursor::MoveTo(10, 15))?;
     print!("Word: {}", display_word);
 
-    // Draw guessed letters
+    //? Draw guessed letters
     queue!(stdout, cursor::MoveTo(10, 17))?;
     print!(
         "Guessed: {}",
         state.guessed_letters.iter().collect::<String>()
     );
 
+    //? Clear the buffer
     stdout.flush()?;
     Ok(())
 }
 
 fn get_player_guess() -> io::Result<char> {
+    //? Loop until a valid alphabetic character is entered
     loop {
         if let Event::Key(key_event) = event::read()? {
             if let KeyCode::Char(c) = key_event.code {
@@ -191,23 +131,23 @@ fn main_loop(mut state: GameState) -> io::Result<()> {
     loop {
         draw_interface(&state)?;
 
-        // Check win/lose conditions
-        if state.current_display().replace(" ", "") == state.secret_word {
-            draw_interface(&state)?;
-            println!("\nYou win!");
+        //? Check win/lose conditions
+        if state
+            .secret_word
+            .chars()
+            .all(|c| state.guessed_letters.contains(&c))
+        {
             break;
         }
 
         if state.incorrect_guesses >= 6 {
-            draw_interface(&state)?;
-            println!("\nYou lose! The word was: {}", state.secret_word);
             break;
         }
 
-        // Get player input
+        //? Get player input
         let guess = get_player_guess()?;
 
-        // Update game state
+        //? Update game state
         if !state.guessed_letters.contains(&guess) {
             state.guessed_letters.push(guess);
             if !state.secret_word.contains(guess) {

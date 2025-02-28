@@ -1,6 +1,4 @@
 rust
 hangman
 programming
-computer
-algorithm
-terminal
+juvare
